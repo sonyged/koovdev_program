@@ -1,0 +1,24 @@
+{
+  "name": "koovdev_program",
+  "version": "1.0.0",
+  "description": "sketch programming for device",
+  "main": "koovdev_program.js",
+  "scripts": {
+    "test": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- --recursive -R spec -r should",
+    "posttest": "./node_modules/.bin/istanbul check-coverage && rm -rf coverage"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "debug": "latest",
+    "avrgirl-stk500v2":
+      "git+ssh://git@bitbucket.org/sonyged/avrgirl-stk500v2.git#koov",
+    "intel-hex": "^0.1.1"
+  },
+  "devDependencies": {
+    "nodeunit": "latest",
+    "mocha": "latest",
+    "istanbul": "latest",
+    "should": "latest"
+  }
+}
