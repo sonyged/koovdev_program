@@ -2,7 +2,7 @@
  */
 
 'use strict';
-const debug = require('debug')('koovdev_program');
+let debug = require('debug')('koovdev_program');
 
 /*
  * Program sketch.
@@ -126,39 +126,46 @@ const program_device = (device, buffer, callback, progress) => {
     debug('program_sketch: reset', err);
     if (err)
       return callback(err);
-    const serial = device.program_serial();
-    debug(`stk500v2: ${device.serial.name()}`);
-    const options = {
-      comm: serial,
-      chip: atmega2560,
-      frameless: false,
-      debug: true
-    };
-    const stk500v2 = require('avrgirl-stk500v2');
-    const stk = new stk500v2(options);
-    program_sketch(stk, buffer, (err) => {
-      device.close((close_err) => {
-        callback(err || close_err);
-      });
-    }, progress);
+    device.serial_open((err) => {
+      debug('program_sketch: open', err);
+      if (err)
+        return callback(err);
+      const serial = device.program_serial();
+      const options = {
+        comm: serial,
+        chip: atmega2560,
+        frameless: false,
+        debug: true
+      };
+      const stk500v2 = require('avrgirl-stk500v2');
+      const stk = new stk500v2(options);
+      program_sketch(stk, buffer, (err) => {
+        device.close((close_err) => {
+          callback(err || close_err);
+        });
+      }, progress);
+    });
   });
 };
 
 function Program(opts)
 {
-  this.board = null;
+  this.device = opts.device;
   if (opts.debug)
     debug = opts.debug;
-  this.program_sketch = (device, name, sketch, callback, progress) => {
+  this.program_sketch = (name, sketch, callback, progress) => {
     const intelhex = require('intel-hex');
     const buffer = intelhex.parse(sketch).data;
-    device.close(err => {
+    debug('program_sketch', name);
+    this.device.close(err => {
+      debug('program_sketch: close', err);
       if (err)
         return callback(err);
-      device.find_device(name, (err) => {
+      this.device.find_device(name, (err) => {
+        debug('program_sketch: find', err);
         if (err)
           return callback(err);
-        program_device(device, buffer, callback, progress);
+        program_device(this.device, buffer, callback, progress);
       });
     });
   };
@@ -167,4 +174,3 @@ function Program(opts)
 module.exports = {
   program: (opts) => { return new Program(opts); }
 };
-
