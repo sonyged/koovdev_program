@@ -121,6 +121,22 @@ function program_sketch(stk, buffer, callback, progress) {
 }
 
 const program_device = (device, buffer, callback, progress) => {
+  const program = () => {
+    const serial = device.program_serial();
+    const options = {
+      comm: serial,
+      chip: atmega2560,
+      frameless: false,
+      debug: false
+    };
+    const stk500v2 = require('avrgirl-stk500v2');
+    const stk = new stk500v2(options);
+    program_sketch(stk, buffer, (err) => {
+      device.close((close_err) => {
+        callback(err || close_err);
+      });
+    }, progress);
+  };
   debug('program_sketch');
   device.reset_koov((err) => {
     debug('program_sketch: reset', err);
@@ -130,20 +146,14 @@ const program_device = (device, buffer, callback, progress) => {
       debug('program_sketch: open', err);
       if (err)
         return callback(err);
-      const serial = device.program_serial();
-      const options = {
-        comm: serial,
-        chip: atmega2560,
-        frameless: false,
-        debug: true
-      };
-      const stk500v2 = require('avrgirl-stk500v2');
-      const stk = new stk500v2(options);
-      program_sketch(stk, buffer, (err) => {
-        device.close((close_err) => {
-          callback(err || close_err);
-        });
-      }, progress);
+      device.serial_event('disconnect', (err) => {
+        if (err)
+          return callback(err);
+        program();
+      }, (err) => {
+        debug('disconnect', err);
+        return callback({msg: 'disconnected'});
+      });
     });
   });
 };
@@ -156,7 +166,7 @@ function Program(opts)
   this.program_sketch = (name, sketch, callback, progress) => {
     const intelhex = require('intel-hex');
     const buffer = intelhex.parse(sketch).data;
-    debug('program_sketch', name);
+    debug('program_sketch', name, buffer.length);
     this.device.close(err => {
       debug('program_sketch: close', err);
       if (err)
