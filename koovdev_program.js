@@ -103,6 +103,7 @@ function program_sketch(stk, buffer, callback, progress) {
           const residStart = appStart + pageSize;
           const firstPage = buffer.slice(appStart, residStart);
           const residPages = buffer.slice(residStart);
+          const residSize = residPages.length;
           debug('firstPage', firstPage);
           debug('resid', residPages);
           stk.writeFlash({ hex: residPages, offset: residStart }, (error) => {
@@ -112,8 +113,21 @@ function program_sketch(stk, buffer, callback, progress) {
             stk.writeFlash({ hex: firstPage, offset: appStart }, (error) => {
               debug('writeFlash(firstPage)', error);
               exit(error);
-            }, (v) => { v.stage = 'writing first page'; progress(v); });
-          }, (v) => { v.stage = 'writing residual pages'; progress(v); });
+            }, (v) => {
+              v.stage = 'writing first page';
+              /*
+               * Fixup total and written as we already written
+               * residual pages.
+               */
+              v.total += residSize;
+              v.written += residSize;
+              progress(v);
+            });
+          }, (v) => {
+            v.stage = 'writing residual pages';
+            v.total += pageSize; // We'll write the first page also.
+            progress(v);
+          });
         });
       });
     });
