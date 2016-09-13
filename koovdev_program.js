@@ -4,6 +4,42 @@
 'use strict';
 let debug = require('debug')('koovdev_program');
 
+const KOOVDEV_PROGRAM_ERROR = 0xfc;
+
+const PROGRAM_NO_ERROR = 0x00;
+const PROGRAM_NOT_READY = 0x01;
+const PROGRAM_ERASE_FAILURE = 0x02;
+const PROGRAM_ENTER_FAILURE = 0x03;
+const PROGRAM_RESIDUAL_FAILURE = 0x04;
+const PROGRAM_FIRSTPAGE_FAILURE = 0x05;
+const PROGRAM_EXIT_FAILURE = 0x06;
+const PROGRAM_DISCONNECTED = 0x07;
+
+const error_p = (err) => {
+  if (!err)
+    return false;
+  if (typeof err === 'object')
+    return !!err.error;
+  return true;
+};
+
+const make_error = (tag, err) => {
+  if (tag === PROGRAM_NO_ERROR)
+    return err;
+  if (typeof err === 'string')
+    err = { msg: err };
+  if (typeof err !== 'object')
+    err = { msg: 'unknown error', original_error: err };
+  err.error = true;
+  if (!err.error_code)
+    err.error_code = ((KOOVDEV_PROGRAM_ERROR << 8) | tag) & 0xffff;
+  return err;
+};
+
+const error = (tag, err, cb) => {
+  return cb(make_error(tag, err));
+};
+
 /*
  * Program sketch.
  */
@@ -75,29 +111,43 @@ const atmega2560 = {
 };
 
 function program_sketch(stk, buffer, callback, progress) {
-  stk.on('ready', (error) => {
-    debug('ready', error);
-    if (error)
-      return callback(error);
-    const exit = error => {
+  stk.on('ready', (err) => {
+    debug('ready', err);
+    if (err)                    // err is stk500v2 error
+      return error(PROGRAM_NOT_READY, {
+        msg: 'device not become ready',
+        original_error: err
+      }, callback);
+    const exit = (tag, err, msg) => {
       stk.exitProgrammingMode((error2) => {
         debug('exit', error2);
-        return callback(error || error2);
+        if (tag !== PROGRAM_NO_ERROR)
+          return error(tag, { msg: msg, original_error: err }, callback);
+        if (error2)             // error2 is stk500v2 error
+          return error(PROGRAM_EXIT_FAILURE, {
+            msg: 'failed to exit from programming mode',
+            original_error: error2
+          }, callback);
+        return error(PROGRAM_NO_ERROR, null, callback);
       });
     };
     // do cool chip stuff in here
-    stk.enterProgrammingMode((error) => {
-      debug('enter', error);
-      if (error)
-        return callback(error);
-      stk.eraseChip((error) => {
-        debug('erase', error);
-        if (error)
-          return exit(error);
-        stk.enterProgrammingMode((error) => {
-          debug('enter', error);
-          if (error)
-            return exit(error);
+    stk.enterProgrammingMode((err) => {
+      debug('enter', err);
+      if (err)                  // err is stk500v2 error
+        return error(PROGRAM_ENTER_FAILURE, {
+          msg: 'failed to inter programing mode',
+          original_error: err
+        }, callback);
+      stk.eraseChip((err) => {
+        debug('erase', err);
+        if (err)                // err is stk500v2 error
+          return exit(PROGRAM_ERASE_FAILURE, err, 'failed to erase chip');
+        stk.enterProgrammingMode((err) => {
+          debug('enter', err);
+          if (err)              // err is stk500v2 error
+            return exit(PROGRAM_ENTER_FAILURE, err,
+                        'failed to enter after erase');
           const pageSize = atmega2560.flash.pageSize;
           const appStart = 0x4000;
           const residStart = appStart + pageSize;
@@ -106,13 +156,17 @@ function program_sketch(stk, buffer, callback, progress) {
           const residSize = residPages.length;
           debug('firstPage', firstPage);
           debug('resid', residPages);
-          stk.writeFlash({ hex: residPages, offset: residStart }, (error) => {
-            debug('writeFlash', error);
-            if (error)
-              return exit(error);
-            stk.writeFlash({ hex: firstPage, offset: appStart }, (error) => {
-              debug('writeFlash(firstPage)', error);
-              exit(error);
+          stk.writeFlash({ hex: residPages, offset: residStart }, (err) => {
+            debug('writeFlash', err);
+            if (err)            // err is stk500v2 error
+              return exit(PROGRAM_RESIDUAL_FAILURE, err,
+                          'failed to write residual pages');
+            stk.writeFlash({ hex: firstPage, offset: appStart }, (err) => {
+              debug('writeFlash(firstPage)', err);
+              if (err)          // err is stk500v2 error
+                return exit(PROGRAM_FIRSTPAGE_FAILURE, err,
+                           'failed to write first page');
+              return exit(PROGRAM_NO_ERROR, err, '');
             }, (v) => {
               v.stage = 'writing first page';
               /*
@@ -147,26 +201,28 @@ const program_device = (device, buffer, callback, progress) => {
     const stk = new stk500v2(options);
     program_sketch(stk, buffer, (err) => {
       device.close((close_err) => {
-        callback(err || close_err);
+        if (error_p(err))
+          return callback(err);
+        return callback(close_err);
       });
     }, progress);
   };
   debug('program_sketch');
   device.reset_koov((err) => {
     debug('program_sketch: reset', err);
-    if (err)
+    if (error_p(err))
       return callback(err);
     device.serial_open((err) => {
       debug('program_sketch: open', err);
-      if (err)
+      if (error_p(err))
         return callback(err);
       device.serial_event('disconnect', (err) => {
-        if (err)
+        if (error_p(err))
           return callback(err);
         program();
       }, (err) => {
         debug('disconnect', err);
-        return callback({msg: 'disconnected'});
+        return error(PROGRAM_DISCONNECTED, {msg: 'disconnected'}, callback);
       });
     });
   });
@@ -183,11 +239,11 @@ function Program(opts)
     debug('program_sketch', name, buffer.length);
     this.device.close(err => {
       debug('program_sketch: close', err);
-      if (err)
+      if (error_p(err))
         return callback(err);
       this.device.find_device(name, (err) => {
         debug('program_sketch: find', err);
-        if (err)
+        if (error_p(err))
           return callback(err);
         program_device(this.device, buffer, callback, progress);
       });
