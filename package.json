@@ -16,6 +16,9 @@
     "intel-hex": "^0.1.1"
   },
   "devDependencies": {
+    "device_proxy": "file:../device_proxy",
+    "koovdev_action": "file:../koovdev_action",
+    "koovdev_device": "file:../../../../app/modules/koovdev_device",
     "nodeunit": "latest",
     "mocha": "latest",
     "istanbul": "latest",
