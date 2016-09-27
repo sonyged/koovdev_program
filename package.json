@@ -1,6 +1,6 @@
 {
   "name": "koovdev_program",
-  "version": "1.0.30",
+  "version": "1.0.43",
   "description": "sketch programming for device",
   "main": "koovdev_program.js",
   "scripts": {
@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "async": "latest",
     "avrgirl-stk500v2":
       "git+ssh://git@bitbucket.org/sonyged/avrgirl-stk500v2.git#koov",
     "debug": "latest",

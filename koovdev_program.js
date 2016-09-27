@@ -3,6 +3,7 @@
 
 'use strict';
 let debug = require('debug')('koovdev_program');
+const async = require('async');
 
 const KOOVDEV_PROGRAM_ERROR = 0xfc;
 
@@ -112,85 +113,139 @@ const atmega2560 = {
   }
 };
 
-function program_sketch(stk, buffer, callback, progress) {
-  stk.on('ready', (err) => {
-    debug('ready', err);
-    if (err)                    // err is stk500v2 error
-      return error(PROGRAM_NOT_READY, {
-        msg: 'device not become ready',
-        original_error: err
-      }, callback);
-    const exit = (tag, err, msg) => {
-      stk.exitProgrammingMode((error2) => {
-        debug('exit', error2);
-        if (tag !== PROGRAM_NO_ERROR)
-          return error(tag, { msg: msg, original_error: err }, callback);
-        if (error2)             // error2 is stk500v2 error
-          return error(PROGRAM_EXIT_FAILURE, {
-            msg: 'failed to exit from programming mode',
-            original_error: error2
-          }, callback);
-        return error(PROGRAM_NO_ERROR, null, callback);
-      });
+function program_sketch(stk, opts) {
+  const { buffer, callback, progress, timeout } = opts;
+  const pageSize = atmega2560.flash.pageSize;
+  const appStart = 0x4000;
+  const residStart = appStart + pageSize;
+  const firstPage = buffer.slice(appStart, residStart);
+  const residPages = buffer.slice(residStart);
+  const residSize = residPages.length;
+  let exit = (err) => callback(err);
+  const stk_call = (done, opts, cb) => {
+    const { name: name, tag: tag, msg: msg } = opts;
+    const error = (original_err, msg) => {
+      const err = make_error(tag, { msg: msg, original_error: original_err });
+      return done(error_p(err), err);
     };
-    // do cool chip stuff in here
-    stk.enterProgrammingMode((err) => {
-      debug('enter', err);
-      if (err)                  // err is stk500v2 error
-        return error(PROGRAM_ENTER_FAILURE, {
-          msg: 'failed to inter programing mode',
-          original_error: err
-        }, callback);
-      stk.eraseChip((err) => {
-        debug('erase', err);
-        if (err)                // err is stk500v2 error
-          return exit(PROGRAM_ERASE_FAILURE, err, 'failed to erase chip');
-        stk.enterProgrammingMode((err) => {
-          debug('enter', err);
-          if (err)              // err is stk500v2 error
-            return exit(PROGRAM_ENTER_FAILURE, err,
-                        'failed to enter after erase');
-          const pageSize = atmega2560.flash.pageSize;
-          const appStart = 0x4000;
-          const residStart = appStart + pageSize;
-          const firstPage = buffer.slice(appStart, residStart);
-          const residPages = buffer.slice(residStart);
-          const residSize = residPages.length;
-          debug('firstPage', firstPage);
-          debug('resid', residPages);
-          stk.writeFlash({ hex: residPages, offset: residStart }, (err) => {
-            debug('writeFlash', err);
-            if (err)            // err is stk500v2 error
-              return exit(PROGRAM_RESIDUAL_FAILURE, err,
-                          'failed to write residual pages');
-            stk.writeFlash({ hex: firstPage, offset: appStart }, (err) => {
-              debug('writeFlash(firstPage)', err);
-              if (err)          // err is stk500v2 error
-                return exit(PROGRAM_FIRSTPAGE_FAILURE, err,
-                           'failed to write first page');
-              return exit(PROGRAM_NO_ERROR, err, '');
-            }, (v) => {
-              v.stage = 'writing first page';
-              /*
-               * Fixup total and written as we already written
-               * residual pages.
-               */
-              v.total += residSize;
-              v.written += residSize;
-              progress(v);
-            });
-          }, (v) => {
-            v.stage = 'writing residual pages';
-            v.total += pageSize; // We'll write the first page also.
-            progress(v);
-          });
-        });
+    let tId = null;
+    const updateTimeout = () => {
+      tId = setTimeout(() => {
+        debug(`${name}: timeout`);
+        tId = null;
+        return error(true, `${name}: timeout`);
+      }, timeout || 60 * 1000);
+    };
+    const cancelTimeout = (cb) => {
+      if (!tId)
+        return;
+      clearTimeout(tId);
+      tId = null;
+      return cb();
+    };
+    updateTimeout();
+    cb((original_err) => {
+      debug(`${name}`, original_err, tId);
+      cancelTimeout(() => {
+        if (original_err)       // original_err is stk500v2 error
+          return error(original_err, msg);
+        return done(null, null);
       });
     });
+    return () => cancelTimeout(() => updateTimeout());
+  };
+
+  async.waterfall([
+    (done) => {
+      return stk_call(done, {
+        name: 'ready',
+        tag: PROGRAM_NOT_READY,
+        msg: 'device not become ready'
+      }, (cb) => {
+        stk.on('ready', (original_err) => {
+          if (!original_err) {  // original_err is stk500v2 error
+            exit = (err) => {
+              stk.exitProgrammingMode((err2) => {
+                debug('exit', err2);
+                if (!error_p(err) && err2) // err2 is stk500v2 error
+                  err = make_error(PROGRAM_EXIT_FAILURE, {
+                    msg: 'failed to exit from programming mode',
+                    original_error: err2
+                  });
+                return callback(err);
+              });
+            };
+          }
+          return cb(original_err);
+        });
+      });
+    },
+    (err, done) => {
+      return stk_call(done, {
+        name: 'enter',
+        tag: PROGRAM_ENTER_FAILURE,
+        msg: 'failed to inter programing mode'
+      }, cb => stk.enterProgrammingMode(cb));
+    },
+    (err, done) => {
+      return stk_call(done, {
+        name: 'erase',
+        tag: PROGRAM_ERASE_FAILURE,
+        msg: 'failed to erase chip',
+      }, cb => stk.eraseChip(cb));
+    },
+    (err, done) => {
+      return stk_call(done, {
+        name: 'enter2',
+        tag: PROGRAM_ENTER_FAILURE,
+        msg: 'failed to enter after erase',
+      }, cb => stk.enterProgrammingMode(cb));
+    },
+    (err, done) => {
+      debug('firstPage', firstPage);
+      debug('resid', residPages);
+      const updateTimeout = stk_call(done, {
+        name: 'residPages',
+        tag: PROGRAM_RESIDUAL_FAILURE,
+        msg: 'failed to write residual pages',
+      }, cb => {
+        stk.writeFlash({ hex: residPages, offset: residStart }, cb, (v) => {
+          v.stage = 'writing residual pages';
+          v.total += pageSize; // We'll write the first page also.
+          progress(v);
+          updateTimeout();
+        });
+      });
+    },
+    (err, done) => {
+      const updateTimeout = stk_call(done, {
+        name: 'firstPage',
+        tag: PROGRAM_FIRSTPAGE_FAILURE,
+        msg: 'failed to write first page',
+      }, cb => {
+        stk.writeFlash({ hex: firstPage, offset: appStart }, cb, (v) => {
+          v.stage = 'writing first page';
+          /*
+           * Fixup total and written as we already written
+           * residual pages.
+           */
+          v.total += residSize;
+          v.written += residSize;
+          progress(v);
+          updateTimeout();
+        });
+      });
+    }
+  ], (_, err) => {
+    return exit(error_p(err) ? err : make_error(PROGRAM_NO_ERROR, null));
   });
 }
 
-const program_device = (device, buffer, callback, progress) => {
+const program_device = (device, opts) => {
+  const { buffer, callback, progress, timeout } = opts;
+  const cleanup = (err) => {
+    device.close((close_err) => callback(error_p(err) ? err : close_err));
+  };
   const program = () => {
     const serial = device.program_serial();
     const options = {
@@ -201,32 +256,43 @@ const program_device = (device, buffer, callback, progress) => {
     };
     const stk500v2 = require('avrgirl-stk500v2');
     const stk = new stk500v2(options);
-    program_sketch(stk, buffer, (err) => {
-      device.close((close_err) => {
-        if (error_p(err))
-          return callback(err);
-        return callback(close_err);
-      });
-    }, progress);
+    program_sketch(stk, {
+      buffer: buffer,
+      callback: cleanup,
+      progress: progress,
+      timeout: timeout
+    });
   };
-  debug('program_sketch');
-  device.reset_koov((err) => {
-    debug('program_sketch: reset', err);
-    if (error_p(err))
-      return callback(err);
-    device.serial_open((err) => {
-      debug('program_sketch: open', err);
-      if (error_p(err))
-        return callback(err);
+  debug('program_sketch: start');
+  async.waterfall([
+    (done) => {
+      device.reset_koov((err) => {
+        debug('program_sketch: reset', err);
+        return done(error_p(err), err);
+      });
+    },
+    (_, done) => {
+      device.serial_open((err) => {
+        debug('program_sketch: open', err);
+        return done(error_p(err), err);
+      });
+    },
+    (_, done) => {
       device.serial_event('disconnect', (err) => {
-        if (error_p(err))
-          return callback(err);
-        program();
+        debug('program_sketch: set disconnect', err);
+        return done(error_p(err), err);
       }, (err) => {
         debug('disconnect', err);
-        return error(PROGRAM_DISCONNECTED, {msg: 'disconnected'}, callback);
+        cleanup(make_error(PROGRAM_DISCONNECTED, {
+          msg: 'disconnected',
+          original_error: err
+        }));
       });
-    });
+    },
+  ], (_, err) => {
+    if (error_p(err))
+      return cleanup(err);
+    return program();
   });
 };
 
@@ -235,20 +301,37 @@ function Program(opts)
   this.device = opts.device;
   if (opts.debug)
     debug = opts.debug;
-  this.program_sketch = (name, sketch, callback, progress) => {
+  this.program_sketch = (opts) => {
+    const { device, sketch, callback, progress, timeout } = opts;
     const intelhex = require('intel-hex');
     const buffer = intelhex.parse(sketch).data;
-    debug('program_sketch', name, buffer.length);
-    this.device.close(err => {
-      debug('program_sketch: close', err);
-      if (error_p(err))
-        return callback(err);
-      this.device.find_device(name, (err) => {
-        debug('program_sketch: find', err);
-        if (error_p(err))
-          return callback(err);
-        program_device(this.device, buffer, callback, progress);
-      });
+    debug('program_sketch', device, buffer.length);
+    async.waterfall([
+      (done) => {
+        this.device.close(err => {
+          debug('program_sketch: close', err);
+          return done(error_p(err), err);
+        });
+      },
+      (err, done) => {
+        this.device.find_device(device, (err) => {
+          debug('program_sketch: find', err);
+          return done(error_p(err), err);
+        });
+      },
+      (err, done) => {
+        program_device(this.device, {
+          buffer: buffer,
+          callback: err => {
+            debug('program_sketch: program done', err);
+            return done(error_p(err), err);
+          },
+          progress: progress,
+          timeout: timeout
+        });
+      }
+    ], (_, err) => {
+      return callback(err);
     });
   };
 };
