@@ -1,6 +1,6 @@
 {
   "name": "koovdev_program",
-  "version": "1.0.43",
+  "version": "1.0.45",
   "description": "sketch programming for device",
   "main": "koovdev_program.js",
   "scripts": {

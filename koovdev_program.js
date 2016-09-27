@@ -313,13 +313,13 @@ function Program(opts)
           return done(error_p(err), err);
         });
       },
-      (err, done) => {
+      (_, done) => {
         this.device.find_device(device, (err) => {
-          debug('program_sketch: find', err);
+          debug('program_sketch: find', err, device);
           return done(error_p(err), err);
         });
       },
-      (err, done) => {
+      (_, done) => {
         program_device(this.device, {
           buffer: buffer,
           callback: err => {
