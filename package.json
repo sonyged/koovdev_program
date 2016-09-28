@@ -1,6 +1,6 @@
 {
   "name": "koovdev_program",
-  "version": "1.0.46",
+  "version": "1.0.47",
   "description": "sketch programming for device",
   "main": "koovdev_program.js",
   "scripts": {
@@ -14,7 +14,8 @@
     "avrgirl-stk500v2":
       "git+ssh://git@bitbucket.org/sonyged/avrgirl-stk500v2.git#koov",
     "debug": "latest",
-    "intel-hex": "^0.1.1"
+    "intel-hex": "^0.1.1",
+    "koovdev_error": "file:../koovdev_error"
   },
   "devDependencies": {
     "device_proxy": "file:../device_proxy",

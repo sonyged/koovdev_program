@@ -4,6 +4,7 @@
 'use strict';
 let debug = require('debug')('koovdev_program');
 const async = require('async');
+const koovdev_error = require('koovdev_error');
 
 const KOOVDEV_PROGRAM_ERROR = 0xfc;
 
@@ -16,32 +17,9 @@ const PROGRAM_FIRSTPAGE_FAILURE = 0x05;
 const PROGRAM_EXIT_FAILURE = 0x06;
 const PROGRAM_DISCONNECTED = 0x07;
 
-const error_p = (err) => {
-  if (!err)
-    return false;
-  if (typeof err === 'object')
-    return !!err.error;
-  return true;
-};
-
-const make_error = (tag, err) => {
-  if (tag === PROGRAM_NO_ERROR)
-    return err;
-  const original_err = err;
-  if (typeof err === 'string')
-    err = { msg: err };
-  if (typeof err !== 'object' || err === null)
-    err = { msg: 'unknown error' };
-  err.error = true;
-  err.original_error = JSON.stringify(original_err);
-  if (!err.error_code)
-    err.error_code = ((KOOVDEV_PROGRAM_ERROR << 8) | tag) & 0xffff;
-  return err;
-};
-
-const error = (tag, err, cb) => {
-  return cb(make_error(tag, err));
-};
+const { error, error_p, make_error } = koovdev_error(KOOVDEV_PROGRAM_ERROR, [
+  PROGRAM_NO_ERROR
+]);
 
 /*
  * Program sketch.
