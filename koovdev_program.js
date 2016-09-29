@@ -283,7 +283,7 @@ function Program(opts)
     const { device, sketch, callback, progress, timeout } = opts;
     const intelhex = require('intel-hex');
     const buffer = intelhex.parse(sketch).data;
-    debug('program_sketch', device, buffer.length);
+    debug('program_sketch', device, buffer.length, timeout);
     async.waterfall([
       (done) => {
         this.device.close(err => {
