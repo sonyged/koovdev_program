@@ -281,8 +281,11 @@ function Program(opts)
     debug = opts.debug;
   this.program_sketch = (opts) => {
     const { device, sketch, callback, progress, timeout } = opts;
-    const intelhex = require('intel-hex');
-    const buffer = intelhex.parse(sketch).data;
+    let { buffer } = opts;
+    if (!buffer) {
+      const intelhex = require('intel-hex');
+      buffer = intelhex.parse(sketch).data;
+    }
     debug('program_sketch', device, buffer.length, timeout);
     async.waterfall([
       (done) => {
