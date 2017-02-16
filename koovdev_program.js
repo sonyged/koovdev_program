@@ -92,7 +92,7 @@ const atmega2560 = {
 };
 
 function program_sketch(stk, opts) {
-  const { buffer, callback, progress, timeout } = opts;
+  const { buffer, callback, progress, timeout, cleanups } = opts;
   const pageSize = atmega2560.flash.pageSize;
   const appStart = 0x4000;
   const residStart = appStart + pageSize;
@@ -120,6 +120,12 @@ function program_sketch(stk, opts) {
       clearTimeout(tId);
       tId = null;
       return cb();
+    };
+    cleanups.program_sketch = () => {
+      debug(`${name}: call cleanup`, tId);
+      cancelTimeout(() => {
+        debug(`${name}: call cleanup: done`);
+      });
     };
     updateTimeout();
     cb((original_err) => {
@@ -221,10 +227,18 @@ function program_sketch(stk, opts) {
 
 const program_device = (device, opts) => {
   const { buffer, callback, progress, timeout } = opts;
-  const cleanup = (err) => {
+  let cleanups = { program_sketch: null };
+  let cleanup = (err) => {
+    cleanup = (err) => {
+      debug('program_sketch: stray cleanup', err);
+      return;
+    };
+    debug('program_sketch: cleanup called');
+    if (cleanups.program_sketch)
+      cleanups.program_sketch();
     device.close((close_err) => callback(error_p(err) ? err : close_err));
   };
-  const program = () => {
+  const program = (cleanups) => {
     const serial = device.program_serial();
     const options = {
       comm: serial,
@@ -236,9 +250,10 @@ const program_device = (device, opts) => {
     const stk = new stk500v2(options);
     program_sketch(stk, {
       buffer: buffer,
-      callback: cleanup,
+      callback: (err) => cleanup(err),
       progress: progress,
-      timeout: timeout
+      timeout: timeout,
+      cleanups: cleanups
     });
   };
   debug('program_sketch: start');
@@ -270,7 +285,7 @@ const program_device = (device, opts) => {
   ], (_, err) => {
     if (error_p(err))
       return cleanup(err);
-    return program();
+    return program(cleanups);
   });
 };
 
