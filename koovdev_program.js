@@ -16,6 +16,8 @@ const PROGRAM_RESIDUAL_FAILURE = 0x04;
 const PROGRAM_FIRSTPAGE_FAILURE = 0x05;
 const PROGRAM_EXIT_FAILURE = 0x06;
 const PROGRAM_DISCONNECTED = 0x07;
+const PROGRAM_BTPIN_INVALID_OFFSET = 0x08;
+const PROGRAM_BTPIN_INVALID_VALUE = 0x09;
 
 const { error, error_p, make_error } = koovdev_error(KOOVDEV_PROGRAM_ERROR, [
   PROGRAM_NO_ERROR
@@ -295,13 +297,40 @@ function Program(opts)
   if (opts.debug)
     debug = opts.debug;
   this.program_sketch = (opts) => {
-    const { device, sketch, callback, progress, timeout } = opts;
+    const { device, sketch, callback, progress, timeout, btpin } = opts;
     let { buffer } = opts;
     if (!buffer) {
       const intelhex = require('intel-hex');
       buffer = intelhex.parse(sketch).data;
     }
-    debug('program_sketch', device, buffer.length, timeout);
+    debug('program_sketch', device, buffer.length, timeout, btpin);
+    if (btpin) {
+      if (!btpin.offset)
+        return error(PROGRAM_BTPIN_INVALID_OFFSET, {
+          msg: 'no btpin offset'
+        }, callback);
+      if (btpin.offset > buffer.length)
+        return error(PROGRAM_BTPIN_INVALID_OFFSET, {
+          msg: `offset out of range: ${btpin.offset} > ${buffer.length}`
+        }, callback);
+      if ((btpin.offset % 256) !== 0)
+        return error(PROGRAM_BTPIN_INVALID_OFFSET, {
+          msg: `offset not aligned: ${btpin.offset}`
+        }, callback);
+      if (!(btpin.value >= 0 && btpin.value <= 9999))
+        return error(PROGRAM_BTPIN_INVALID_VALUE, {
+          msg: `offset out of range: ${btpin.value}`
+        }, callback);
+
+      const embed_btpin = (buffer, btpin) => buffer.map((v, i) => {
+        if (i === btpin.offset)
+          return btpin.value & 0xff;
+        if (i === btpin.offset + 1)
+          return (btpin.value >> 8) & 0xff;
+        return v;
+      });
+      buffer = embed_btpin(buffer, btpin);
+    }
     async.waterfall([
       (done) => {
         this.device.close(err => {
