@@ -322,13 +322,13 @@ function Program(opts)
           msg: `offset out of range: ${btpin.value}`
         }, callback);
 
-      const embed_btpin = (buffer, btpin) => buffer.map((v, i) => {
+      const embed_btpin = (buffer, btpin) => Buffer.from(buffer.map((v, i) => {
         if (i === btpin.offset)
           return btpin.value & 0xff;
         if (i === btpin.offset + 1)
           return (btpin.value >> 8) & 0xff;
         return v;
-      });
+      }));
       buffer = embed_btpin(buffer, btpin);
     }
     async.waterfall([
