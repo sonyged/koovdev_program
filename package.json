@@ -1,6 +1,6 @@
 {
   "name": "koovdev_program",
-  "version": "1.0.66",
+  "version": "1.0.67",
   "description": "sketch programming for device",
   "main": "koovdev_program.js",
   "scripts": {
@@ -17,12 +17,12 @@
       "git+ssh://git@bitbucket.org/sonyged/node-serialport.git#koov-1_0_4",
     "debug": "^2.6.6",
     "intel-hex": "^0.1.1",
-    "koovdev_error": "file:../koovdev_error"
+    "koovdev_error": "git+ssh://git@bitbucket.org/sonyged/koovdev_error.git"
   },
   "devDependencies": {
-    "device_proxy": "file:../device_proxy",
-    "koovdev_action": "file:../koovdev_action",
-    "koovdev_device": "file:../../../../app/modules/koovdev_device",
+    "device_proxy": "git+ssh://git@bitbucket.org/sonyged/device_proxy.git",
+    "koovdev_action": "git+ssh://git@bitbucket.org/sonyged/koovdev_action.git",
+    "koovdev_device": "git+ssh://git@bitbucket.org/sonyged/koovdev_device.git",
     "nodeunit": "^0.11.0",
     "mocha": "^3.3.0",
     "istanbul": "^0.4.5",
