@@ -1,6 +1,6 @@
 {
   "name": "koovdev_program",
-  "version": "1.0.67",
+  "version": "1.0.68",
   "description": "sketch programming for device",
   "main": "koovdev_program.js",
   "scripts": {
@@ -12,9 +12,9 @@
   "dependencies": {
     "async": "^2.4.0",
     "avrgirl-stk500v2":
-      "git+ssh://git@bitbucket.org/sonyged/avrgirl-stk500v2.git#koov",
+      "https://bitbucket.org/sonyged/avrgirl-stk500v2.git#koov",
     "serialport":
-      "git+ssh://git@bitbucket.org/sonyged/node-serialport.git#koov-1_0_4",
+      "https://bitbucket.org/sonyged/node-serialport.git#koov-1_0_4",
     "debug": "^2.6.6",
     "intel-hex": "^0.1.1",
     "koovdev_error": "git+ssh://git@bitbucket.org/sonyged/koovdev_error.git"
