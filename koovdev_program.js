@@ -327,6 +327,7 @@ function Program(opts)
     }
     debug('program_sketch', device, buffer.length, timeout, btpin);
     if (btpin) {
+      debug('program_sketch', btpin.offset, btpin.value);
       if (!btpin.offset)
         return error(PROGRAM_BTPIN_INVALID_OFFSET, {
           msg: 'no btpin offset'
@@ -351,16 +352,20 @@ function Program(opts)
           return (btpin.value >> 8) & 0xff;
         return v;
       }));
+      debug('program_sketch: call embed_btpin');
       buffer = embed_btpin(buffer, btpin);
+      debug('program_sketch: embed_btpin', buffer.length);
     }
     async.waterfall([
       (done) => {
+        debug('program_sketch: call close');
         this.device.close(err => {
           debug('program_sketch: close', err);
           return done(error_p(err), err);
         });
       },
       (_, done) => {
+        debug('program_sketch: call find_device');
         this.device.find_device(device, (err) => {
           debug('program_sketch: find', err, device);
           return done(error_p(err), err);
@@ -378,6 +383,7 @@ function Program(opts)
         });
       }
     ], (_, err) => {
+      debug('program_sketch: bail out', err);
       return callback(err);
     });
   };
