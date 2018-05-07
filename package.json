@@ -11,10 +11,8 @@
   "license": "SEE LICENSE in ./LICENSE",
   "dependencies": {
     "async": "^2.4.0",
-    "avrgirl-stk500v2":
-      "https://github.com/sonyged/avrgirl-stk500v2.git#koov",
-    "serialport":
-      "https://github.com/sonyged/node-serialport.git#koov-1_0_4",
+    "avrgirl-stk500v2": "https://github.com/sonyged/avrgirl-stk500v2.git#koov",
+    "serialport": "https://github.com/sonyged/node-serialport.git#koov-1_0_4",
     "debug": "^2.6.6",
     "intel-hex": "^0.1.1",
     "koovdev_error": "https://github.com/sonyged/koovdev_error.git"
