@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "device_proxy": "https://github.com/sonyged/device_proxy.git#565741bcc0d600d43596583e1c676c8d1a5bad12",
-    "koovdev_action": "https://github.com/sonyged/koovdev_action.git#4d05d17ec3a9eca8803636ad1d7df8331b695c7f",
+    "koovdev_action": "https://github.com/sonyged/koovdev_action.git#7c42c8269da02c9e98c7c3e443ccc1cf9f225305",
     "koovdev_device": "https://github.com/sonyged/koovdev_device.git#c61d2940c0707783ab5b912d0d3b90902086e08a",
     "nodeunit": "^0.11.0",
     "mocha": "^3.3.0",
