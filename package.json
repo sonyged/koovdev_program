@@ -1,6 +1,6 @@
 {
   "name": "koovdev_program",
-  "version": "1.0.77",
+  "version": "1.0.78",
   "description": "sketch programming for device",
   "main": "koovdev_program.js",
   "scripts": {
@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "device_proxy": "https://github.com/sonyged/device_proxy.git#565741bcc0d600d43596583e1c676c8d1a5bad12",
-    "koovdev_action": "https://github.com/sonyged/koovdev_action.git#b5a6c34e74b201726ed09c0d56ccef2bee940303",
+    "koovdev_action": "https://github.com/sonyged/koovdev_action.git#ce010c7d6a4350833fefcde816765d923e466174",
     "koovdev_device": "https://github.com/sonyged/koovdev_device.git#c61d2940c0707783ab5b912d0d3b90902086e08a",
     "nodeunit": "^0.11.0",
     "mocha": "^3.3.0",
