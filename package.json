@@ -12,14 +12,14 @@
   "dependencies": {
     "async": "^2.4.0",
     "avrgirl-stk500v2": "https://github.com/sonyged/avrgirl-stk500v2.git#849777a61f28992a372a32a24da69bd5c8f1558a",
-    "serialport": "https://github.com/sonyged/node-serialport.git#71150b09874b2ed7be83b9c4ab9427c4544f31d6",
+    "serialport": "8.0.5",
     "debug": "^2.6.6",
     "intel-hex": "^0.1.1",
     "koovdev_error": "https://github.com/sonyged/koovdev_error.git#c2ba353f2bd4296a5a76de492968f5feba943df3"
   },
   "devDependencies": {
     "device_proxy": "https://github.com/sonyged/device_proxy.git#565741bcc0d600d43596583e1c676c8d1a5bad12",
-    "koovdev_action": "https://github.com/sonyged/koovdev_action.git#0f859c860defdca91dd6f0d412831179120871a0",
+    "koovdev_action": "https://github.com/sonyged/koovdev_action.git#4a5aa044cc8402743338f4ae66731d494906d28b",
     "koovdev_device": "https://github.com/sonyged/koovdev_device.git#4d1779918b24f11c0a2291744a4a6e234b083c34",
     "nodeunit": "^0.11.0",
     "mocha": "^3.3.0",
