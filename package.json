@@ -12,7 +12,7 @@
   "dependencies": {
     "async": "^2.4.0",
     "avrgirl-stk500v2": "https://github.com/sonyged/avrgirl-stk500v2.git#849777a61f28992a372a32a24da69bd5c8f1558a",
-    "serialport": "8.0.5",
+    "serialport": "^8.0.5",
     "debug": "^2.6.6",
     "intel-hex": "^0.1.1",
     "koovdev_error": "https://github.com/sonyged/koovdev_error.git#c2ba353f2bd4296a5a76de492968f5feba943df3"
