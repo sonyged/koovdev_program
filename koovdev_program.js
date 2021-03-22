@@ -249,8 +249,8 @@ function program_sketch(stk, opts) {
   });
 }
 
-const program_device = (device, opts) => {
-  const { buffer, callback, progress, timeout } = opts;
+const program_device = (proxy, opts) => {
+  const { buffer, callback, device, progress, timeout } = opts;
   let cleanups = { program_sketch: null };
   let cleanup = (err) => {
     cleanup = (err) => {
@@ -260,10 +260,10 @@ const program_device = (device, opts) => {
     debug('program_sketch: cleanup called');
     if (cleanups.program_sketch)
       cleanups.program_sketch();
-    device.close((close_err) => callback(error_p(err) ? err : close_err));
+    proxy.close((close_err) => callback(error_p(err) ? err : close_err));
   };
   const program = (cleanups) => {
-    const serial = device.program_serial();
+    const serial = proxy.program_serial();
     const options = {
       comm: serial,
       chip: atmega2560,
@@ -283,19 +283,19 @@ const program_device = (device, opts) => {
   debug('program_sketch: start');
   async.waterfall([
     (done) => {
-      device.reset_koov((err) => {
+      proxy.reset_koov((err) => {
         debug('program_sketch: reset', err);
         return done(error_p(err), err);
       });
     },
     (_, done) => {
-      device.serial_open((err) => {
+      proxy.serial_open((err) => {
         debug('program_sketch: open', err);
         return done(error_p(err), err);
       });
     },
     (_, done) => {
-      device.serial_event('disconnect', (err) => {
+      proxy.serial_event('disconnect', (err) => {
         debug('program_sketch: set disconnect', err);
         return done(error_p(err), err);
       }, (err) => {
