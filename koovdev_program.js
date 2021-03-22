@@ -291,7 +291,11 @@ const program_device = (proxy, opts) => {
     (_, done) => {
       proxy.serial_open((err) => {
         debug('program_sketch: open', err);
-        return done(error_p(err), err);
+        if (! error_p(err))
+          return done(error_p(err), err);
+        proxy.rescan_and_open(err, device, (err, device) => {
+          return done(error_p(err), err);
+        });
       });
     },
     (_, done) => {
@@ -373,6 +377,7 @@ function Program(opts)
             debug('program_sketch: program done', err);
             return done(error_p(err), err);
           },
+          device,
           progress: progress,
           timeout: timeout
         });
