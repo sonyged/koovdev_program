@@ -289,13 +289,15 @@ const program_device = (proxy, opts) => {
       });
     },
     (_, done) => {
+      proxy.rescan(null, device, ['win32', 'darwin'], (err, device) => {
+        debug('program_sketch: rescan', err);
+        return done(error_p(err), err);
+      });
+    },
+    (_, done) => {
       proxy.serial_open((err) => {
         debug('program_sketch: open', err);
-        if (! error_p(err))
-          return done(error_p(err), err);
-        proxy.rescan_and_open(err, device, (err, device) => {
-          return done(error_p(err), err);
-        });
+        return done(error_p(err), err);
       });
     },
     (_, done) => {
