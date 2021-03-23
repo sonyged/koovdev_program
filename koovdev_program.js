@@ -297,7 +297,7 @@ const program_device = (proxy, opts) => {
           debug(`program_sketch: rescan[${count}]`, err);
           if (error_p(err))
             return done(error_p(err), err);
-          return rescan(name, f, count - 1);
+          return with_rescan(done, name, f, count - 1);
         });
       });
     })
