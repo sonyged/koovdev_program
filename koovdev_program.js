@@ -281,8 +281,30 @@ const program_device = (proxy, opts) => {
     });
   };
   debug('program_sketch: start');
+  const with_rescan = (done, name, f, count) => {
+    f((err) => {
+      debug(`program_sketch: ${name}[${count}]`, err);
+      if (! error_p(err))
+        return done(error_p(err), err);
+      if (count <= 0)
+        return done(error_p(err), err);
+      // retry with rescan
+      proxy.close((err) => {
+        debug(`program_sketch: close[${count}]`, err);
+        if (error_p(err))
+          return done(error_p(err), err);
+        proxy.rescan(err, device, ['win32'], (err, device) => {
+          debug(`program_sketch: rescan[${count}]`, err);
+          if (error_p(err))
+            return done(error_p(err), err);
+          return rescan(name, f, count - 1);
+        });
+      });
+    })
+  };
   async.waterfall([
     (done) => {
+      return with_rescan(done, 'reset', proxy.reset_koov, 3);
       proxy.reset_koov((err) => {
         debug('program_sketch: reset', err);
         if (! error_p(err))
@@ -305,6 +327,7 @@ const program_device = (proxy, opts) => {
       });
     },
     (_, done) => {
+      return with_rescan(done, 'open', proxy.serial_open, 3);
       proxy.serial_open((err) => {
         debug('program_sketch: open', err);
         if (! error_p(err))
