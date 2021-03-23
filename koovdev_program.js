@@ -285,21 +285,41 @@ const program_device = (proxy, opts) => {
     (done) => {
       proxy.reset_koov((err) => {
         debug('program_sketch: reset', err);
-        return done(error_p(err), err);
+        if (! error_p(err))
+          return done(error_p(err), err);
+        // retry with rescan
+        proxy.close((err) => {
+          debug('program_sketch: close', err);
+          if (error_p(err))
+            return done(error_p(err), err);
+          proxy.rescan(err, device, ['win32'], (err, device) => {
+            debug('program_sketch: rescan', err);
+            if (error_p(err))
+              return done(error_p(err), err);
+            proxy.reset_koov((err) => {
+              debug('program_sketch: reset(again)', err);
+              return done(error_p(err), err);
+            });
+          });
+        });
       });
     },
     (_, done) => {
       proxy.serial_open((err) => {
         debug('program_sketch: open', err);
-        if (! error_p(err)) {
+        if (! error_p(err))
           return done(error_p(err), err);
-        }
+        // retry with rescan
         proxy.close((err) => {
           debug('program_sketch: close', err);
-          proxy.rescan(err, device, ['win32', 'darwin'], (err, device) => {
+          if (error_p(err))
+            return done(error_p(err), err);
+          proxy.rescan(err, device, ['win32'], (err, device) => {
             debug('program_sketch: rescan', err);
+            if (error_p(err))
+              return done(error_p(err), err);
             proxy.serial_open((err) => {
-              debug('program_sketch: reopen', err);
+              debug('program_sketch: open(again)', err);
               return done(error_p(err), err);
             });
           });
