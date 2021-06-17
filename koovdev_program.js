@@ -289,6 +289,10 @@ const program_device = (device, opts) => {
       });
     },
     (_, done) => {
+      debug('program_sketch: wait after reset');
+      setTimeout(() => done(false, null), 5000);
+    },
+    (_, done) => {
       device.serial_open((err) => {
         debug('program_sketch: open', err);
         return done(error_p(err), err);
