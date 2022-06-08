@@ -15,12 +15,12 @@
     "serialport": "^8.0.5",
     "debug": "^2.6.6",
     "intel-hex": "^0.1.1",
-    "koovdev_error": "https://github.com/sonyged/koovdev_error.git#c2ba353f2bd4296a5a76de492968f5feba943df3"
+    "koovdev_error": "https://github.com/sonyged/koovdev_error.git#6a66a483edfa8c692d46cb7841097add69aa619c"
   },
   "devDependencies": {
-    "device_proxy": "https://github.com/sonyged/device_proxy.git#565741bcc0d600d43596583e1c676c8d1a5bad12",
-    "koovdev_action": "https://github.com/sonyged/koovdev_action.git#b2b33406d1cbbdba315811318004bebe5de08abf",
-    "koovdev_device": "https://github.com/sonyged/koovdev_device.git#4d1779918b24f11c0a2291744a4a6e234b083c34",
+    "device_proxy": "https://github.com/sonyged/device_proxy.git#1bd7356a1b3f2b50dea5e256f3778a01b0d8566b",
+    "koovdev_action": "https://github.com/sonyged/koovdev_action.git#f779ae97ecc3a7e97407f6ae3a470c6c8a229385",
+    "koovdev_device": "https://github.com/sonyged/koovdev_device.git#97b17dea4f7b44a3480350d806f37d2ecb6452fd",
     "nodeunit": "^0.11.0",
     "mocha": "^3.3.0",
     "istanbul": "^0.4.5",
